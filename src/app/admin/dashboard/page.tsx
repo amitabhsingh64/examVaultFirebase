@@ -22,7 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Clock, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { getAuth, onAuthStateChanged, User } from "firebase/auth";
+import { getAuth, onAuthStateChanged, User, signOut } from "firebase/auth";
 import { app } from "@/lib/firebase";
 
 interface Exam {
@@ -113,6 +113,16 @@ export default function AdminDashboard() {
   const upcomingExams = exams.filter(exam => new Date(exam.scheduledDate).getTime() > new Date().getTime());
   const pastExams = exams.filter(exam => new Date(exam.scheduledDate).getTime() < new Date().getTime());
 
+  const handleLogout = async () => {
+    const auth = getAuth(app);
+    try {
+      await signOut(auth);
+      router.push("/");
+    } catch (error: any) {
+      console.error("Logout error:", error);
+    }
+  };
+
   return (
     <SidebarProvider>
       <Sidebar variant="inset" side="left" collapsible="icon">
@@ -163,7 +173,7 @@ export default function AdminDashboard() {
           </SidebarGroup>
         </SidebarContent>
         <SidebarFooter>
-          <Button variant="outline" className="w-full" onClick={() => router.push("/")}>
+          <Button variant="outline" className="w-full" onClick={handleLogout}>
             Logout
           </Button>
         </SidebarFooter>
