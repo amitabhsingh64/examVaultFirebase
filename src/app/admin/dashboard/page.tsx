@@ -150,7 +150,7 @@ export default function AdminDashboard() {
         <p>Manage exams, scheduling, results, and proctoring records from the sidebar.</p>
 
         <h2 className="text-xl font-semibold mt-4">Scheduled Exams</h2>
-        <Tabs defaultVale="live" className="w-full">
+        <Tabs defaultValue="live" className="w-full">
           <TabsList>
             <TabsTrigger value="live">Live</TabsTrigger>
             <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
