@@ -1,10 +1,9 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApp, getApps } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-import { getFirestore } from "firebase/firestore";
+import { getAnalytics, Analytics } from "firebase/analytics";
+import { getFirestore, FirebaseFirestore } from "firebase/firestore";
 
-// TODO: Replace the following with your app's Firebase project configuration
-// See: https://firebase.google.com/docs/web/setup#config-object
+// Firebase configuration
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -16,21 +15,29 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-let app;
+let app: any;
 
 if (!getApps().length) {
   app = initializeApp(firebaseConfig);
-}else {
+} else {
   app = getApp(); // if already initialized, use that one
 }
 
+let analytics: Analytics;
+let db: FirebaseFirestore;
 
-let analytics;
-let db;
-
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' &&
+    firebaseConfig.apiKey &&
+    firebaseConfig.authDomain &&
+    firebaseConfig.projectId &&
+    firebaseConfig.storageBucket &&
+    firebaseConfig.messagingSenderId &&
+    firebaseConfig.appId &&
+    firebaseConfig.measurementId) {
   analytics = getAnalytics(app);
   db = getFirestore(app);
+} else {
+  console.warn("Firebase configuration is incomplete. Make sure all environment variables are set.");
 }
 
-export {app, analytics, db};
+export { app, analytics, db };
