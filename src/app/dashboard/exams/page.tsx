@@ -6,6 +6,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Clock } from "lucide-react";
 import { useSearchParams } from 'next/navigation';
+import { db } from '@/lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
 
 interface Question {
     questionText: string;
@@ -30,18 +33,41 @@ export default function ExamInterface() {
     const [timer, setTimer] = useState(3600); // Example timer in seconds (1 hour)
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [studentAnswers, setStudentAnswers] = useState<string[]>([]); // Array to store student answers
+    const { toast } = useToast();
 
     useEffect(() => {
-        // TODO: Fetch the exam details based on examId from URL params or context
-        // For now, using a dummy exam
-        const dummyExam = {
-            id: '1',
-            examName: 'Sample Exam',
-            scheduledDate: new Date().toISOString(),
-            questions: '[{"questionText":"What is the capital of France?","questionType":"multiple-choice","options":["London","Paris","Berlin","Rome"],"correctAnswer":"Paris","category":"Geography"},{"questionText":"What is the capital of Germany?","questionType":"multiple-choice","options":["London","Paris","Berlin","Rome"],"correctAnswer":"Berlin","category":"Geography"}]',
+        const fetchExam = async () => {
+            if (!examId) {
+                toast({
+                    title: 'Error: Exam ID not found.',
+                    variant: 'destructive',
+                });
+                return;
+            }
+
+            try {
+                const examDoc = await getDoc(doc(db, 'exams', examId));
+                if (examDoc.exists()) {
+                    const examData = examDoc.data() as Exam;
+                    setExam({ id: examDoc.id, ...examData });
+                } else {
+                    toast({
+                        title: 'Error: Exam not found.',
+                        variant: 'destructive',
+                    });
+                }
+            } catch (error: any) {
+                console.error('Error fetching exam:', error);
+                toast({
+                    title: 'Error fetching exam.',
+                    description: error.message,
+                    variant: 'destructive',
+                });
+            }
         };
-        setExam(dummyExam);
-    }, [examId]);
+
+        fetchExam();
+    }, [examId, toast]);
 
     useEffect(() => {
         let interval: any;
@@ -53,10 +79,14 @@ export default function ExamInterface() {
             // TODO: Handle exam submission when timer reaches 0
             clearInterval(interval);
             handleSubmitExam();
-            alert('Time is up!');
+            toast({
+                title: 'Time is up!',
+                description: 'The exam has been submitted automatically.',
+            });
+            router.push("/dashboard");
         }
         return () => clearInterval(interval);
-    }, [timer]);
+    }, [timer, router, toast]);
 
     const formatTime = (time: number): string => {
         const hours = Math.floor(time / 3600);
@@ -88,7 +118,10 @@ export default function ExamInterface() {
     const handleSubmitExam = async () => {
         // TODO: Save studentAnswers to Firebase or local storage
         console.log('Exam submitted!', studentAnswers);
-        alert('Exam submitted!');
+        toast({
+            title: 'Exam submitted!',
+            description: 'Your answers have been saved.',
+        });
         router.push("/dashboard");
     };
 
