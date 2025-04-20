@@ -51,6 +51,8 @@ export default function ExamScheduling() {
   const {toast} = useToast();
   const [exams, setExams] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+
 
   const fetchExams = async () => {
     setLoading(true);
@@ -79,11 +81,47 @@ export default function ExamScheduling() {
     fetchExams();
   }, []);
 
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      toast({
+        title: 'Error: No file selected.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (file.type !== 'text/csv') {
+      toast({
+        title: 'Error: Invalid file format.',
+        description: 'Please upload a CSV file.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setCsvFile(file);
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const text = e.target?.result as string;
+      const parsedQuestions = parseCSV(text);
+      setQuestions(parsedQuestions);
+    };
+    reader.readAsText(file);
+  };
+
+  const parseCSV = (csvText: string): string => {
+    const lines = csvText.split('\n');
+    const questions = lines.map(line => line.trim()).filter(line => line !== '').join('\n');
+    return questions;
+  };
+
   const handleScheduleExam = async () => {
-    if (!date || !examName || !questions) {
+    if (!date || !examName || (!questions && !csvFile)) {
       toast({
         title: 'Error scheduling exam.',
-        description: 'Please fill in all fields.',
+        description: 'Please fill in all fields and upload a CSV file or enter questions.',
         variant: 'destructive',
       });
       return;
@@ -106,6 +144,7 @@ export default function ExamScheduling() {
       setDate(undefined);
       setExamName('');
       setQuestions('');
+      setCsvFile(null);
 
       // Refresh the exams list
       fetchExams();
@@ -181,6 +220,20 @@ export default function ExamScheduling() {
             </PopoverContent>
           </Popover>
         </div>
+          <div>
+            <Label htmlFor="csvFile">Upload Questions (CSV)</Label>
+            <Input
+              type="file"
+              id="csvFile"
+              accept=".csv"
+              onChange={handleFileUpload}
+            />
+            {csvFile && (
+              <p className="mt-2 text-sm text-muted-foreground">
+                Selected file: {csvFile.name}
+              </p>
+            )}
+          </div>
 
         <div>
           <Label htmlFor="questions">Questions</Label>
