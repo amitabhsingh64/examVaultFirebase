@@ -39,7 +39,7 @@ export default function ExamScheduling() {
     document.title = 'Exam Scheduling';
   }, []);
 
-  const [date, setDate] = useState<Date | undefined>(new Date());
+  const [date, setDate] = useState<Date | undefined>(undefined);
   const [examName, setExamName] = useState('');
   const [questions, setQuestions] = useState('');
   const {toast} = useToast();
