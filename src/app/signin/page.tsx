@@ -16,16 +16,24 @@ export default function SignInPage() {
   const handleGoogleSignIn = async () => {
     const auth = getAuth(app);
     const provider = new GoogleAuthProvider();
-
     try {
-      await signInWithPopup(auth, provider);
+      await signInWithPopup(auth, provider).then((result) => {
+        // This gives you a Google Access Token. You can use it to access the Google API.
+        const credential = GoogleAuthProvider.credentialFromResult(result);
+        const token = credential?.accessToken;
+        // The signed-in user info.
+        const user = result.user;
+        toast({
+          title: "Sign in successful!",
+          description: "Redirecting to dashboard...",
+        });
+        router.push(isStudent ? "/dashboard" : "/admin/dashboard");
+        // ...
+      });
+
       // After successful sign-in, redirect based on user role (example)
       // In a real application, you'd likely fetch user role from your database
-      toast({
-        title: "Sign in successful!",
-        description: "Redirecting to dashboard...",
-      });
-      router.push(isStudent ? "/dashboard" : "/admin/dashboard");
+
     } catch (error: any) {
       console.error("Google Sign-In Error:", error);
       toast({
@@ -54,3 +62,4 @@ export default function SignInPage() {
     </div>
   );
 }
+
