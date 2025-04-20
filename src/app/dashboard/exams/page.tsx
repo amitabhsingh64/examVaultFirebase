@@ -9,6 +9,7 @@ import { useSearchParams } from 'next/navigation';
 import { db } from '@/lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 interface Question {
     questionText: string;
@@ -145,23 +146,18 @@ export default function ExamInterface() {
                     <div>
                         <h3 className="text-xl font-semibold">Question {currentQuestionIndex + 1}</h3>
                         <p>{currentQuestion.questionText}</p>
-                        <ul className="list-none space-y-2">
-                            {currentQuestion.options.map((option, index) => (
-                                <li key={index}>
-                                    <label className="inline-flex items-center space-x-2">
-                                        <input
-                                            type="radio"
-                                            className="accent-primary h-5 w-5"
-                                            name={`question-${currentQuestionIndex}`}
-                                            value={option}
-                                            checked={studentAnswers[currentQuestionIndex] === option}
-                                            onChange={() => handleOptionSelect(option)}
-                                        />
-                                        <span>{option}</span>
-                                    </label>
-                                </li>
-                            ))}
-                        </ul>
+                        {currentQuestion.options && currentQuestion.options.length > 0 ? (
+                            <RadioGroup value={studentAnswers[currentQuestionIndex]} onValueChange={(value) => handleOptionSelect(value)}>
+                                {currentQuestion.options.map((option, index) => (
+                                    <div key={index} className="flex items-center space-x-2">
+                                        <RadioGroupItem value={option} id={`option-${index}`} className="h-5 w-5" />
+                                        <label htmlFor={`option-${index}`} className="cursor-pointer">{option}</label>
+                                    </div>
+                                ))}
+                            </RadioGroup>
+                        ) : (
+                            <p>No options available for this question.</p>
+                        )}
                     </div>
                     <div className="flex justify-between">
                         <Button variant="secondary" onClick={handlePreviousQuestion} disabled={currentQuestionIndex === 0}>
