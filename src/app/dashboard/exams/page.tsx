@@ -12,6 +12,8 @@ import { useToast } from '@/hooks/use-toast';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
+import { getStorage, ref, getDownloadURL } from "firebase/storage";
+import Papa from 'papaparse';
 
 interface Question {
     questionText: string;
@@ -26,6 +28,7 @@ interface Exam {
     examName: string;
     scheduledDate: string;
     questions: string;
+    csvFileUrl?: string;
 }
 
 export default function ExamInterface() {
@@ -39,6 +42,7 @@ export default function ExamInterface() {
     const { toast } = useToast();
     const videoRef = useRef<HTMLVideoElement>(null);
     const [hasCameraPermission, setHasCameraPermission] = useState(false);
+    const [questions, setQuestions] = useState<Question[]>([]);
 
     useEffect(() => {
         const getCameraPermission = async () => {
@@ -80,6 +84,9 @@ export default function ExamInterface() {
                 if (examDoc.exists()) {
                     const examData = examDoc.data() as Exam;
                     setExam({ id: examDoc.id, ...examData });
+                    if (examData.csvFileUrl) {
+                        loadQuestionsFromCSV(examData.csvFileUrl);
+                    }
                 } else {
                     toast({
                         title: 'Error: Exam not found.',
@@ -100,6 +107,62 @@ export default function ExamInterface() {
 
         fetchExam();
     }, [examId, toast, router]);
+
+    const loadQuestionsFromCSV = async (csvFileUrl: string) => {
+        const storage = getStorage();
+        const gsReference = ref(storage, csvFileUrl);
+
+        try {
+            const url = await getDownloadURL(gsReference);
+            Papa.parse(url, {
+                download: true,
+                header: true,
+                complete: (results) => {
+                    if (results.data && results.data.length > 0) {
+                        // Filter out rows that might be incomplete or contain errors
+                        const filteredQuestions = results.data.filter((row: any) => {
+                            return row['Question Text'] && row['Question Type'] && row['Options'] && row['Correct Answer'] && row['Category'];
+                        });
+
+                        // Transform the parsed data into the Question interface
+                        const questionsArray = filteredQuestions.map((row: any) => {
+                            const options = row['Options'].split(';').map((opt: string) => opt.trim());
+                            return {
+                                questionText: row['Question Text'],
+                                questionType: row['Question Type'],
+                                options: options,
+                                correctAnswer: row['Correct Answer'],
+                                category: row['Category'],
+                            };
+                        });
+
+                        setQuestions(questionsArray);
+                    } else {
+                        toast({
+                            title: 'Error: Could not parse CSV data.',
+                            variant: 'destructive',
+                        });
+                    }
+                },
+                error: (error) => {
+                    console.error('Error parsing CSV:', error.message);
+                    toast({
+                        title: 'Error parsing CSV file.',
+                        description: error.message,
+                        variant: 'destructive',
+                    });
+                },
+            });
+        } catch (error: any) {
+            console.error('Error getting download URL:', error);
+            toast({
+                title: 'Error accessing CSV file.',
+                description: error.message,
+                variant: 'destructive',
+            });
+        }
+    };
+
 
     useEffect(() => {
         let interval: any;
@@ -126,8 +189,6 @@ export default function ExamInterface() {
         const seconds = time % 60;
         return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     };
-
-    const questions: Question[] = exam ? JSON.parse(exam.questions) : [];
 
     const handleNextQuestion = () => {
         if (currentQuestionIndex < questions.length - 1) {
@@ -175,23 +236,27 @@ export default function ExamInterface() {
                                 <span>{formatTime(timer)}</span>
                             </div>
                         </div>
-                        <div className="mb-4 p-4 rounded-md bg-secondary">
-                            <h3 className="text-xl font-semibold">Question {currentQuestionIndex + 1}</h3>
-                            <p>{currentQuestion.questionText}</p>
-                            <Separator className="my-2" />
-                            {currentQuestion.options && currentQuestion.options.length > 0 ? (
-                                <RadioGroup value={studentAnswers[currentQuestionIndex]} onValueChange={(value) => handleOptionSelect(value)}>
-                                    {currentQuestion.options.map((option, index) => (
-                                        <div key={index} className="flex items-center space-x-2">
-                                            <RadioGroupItem value={option} id={`option-${index}`} className="h-5 w-5" />
-                                            <label htmlFor={`option-${index}`} className="cursor-pointer">{option}</label>
-                                        </div>
-                                    ))}
-                                </RadioGroup>
-                            ) : (
-                                <p>No options available for this question.</p>
-                            )}
-                        </div>
+                        {currentQuestion ? (
+                            <div className="mb-4 p-4 rounded-md bg-secondary">
+                                <h3 className="text-xl font-semibold">Question {currentQuestionIndex + 1}</h3>
+                                <p>{currentQuestion.questionText}</p>
+                                <Separator className="my-2" />
+                                {currentQuestion.options && currentQuestion.options.length > 0 ? (
+                                    <RadioGroup value={studentAnswers[currentQuestionIndex]} onValueChange={(value) => handleOptionSelect(value)}>
+                                        {currentQuestion.options.map((option, index) => (
+                                            <div key={index} className="flex items-center space-x-2">
+                                                <RadioGroupItem value={option} id={`option-${index}`} className="h-5 w-5" />
+                                                <label htmlFor={`option-${index}`} className="cursor-pointer">{option}</label>
+                                            </div>
+                                        ))}
+                                    </RadioGroup>
+                                ) : (
+                                    <p>No options available for this question.</p>
+                                )}
+                            </div>
+                        ) : (
+                            <p>Loading questions...</p>
+                        )}
                         <div className="flex justify-between">
                             <Button variant="secondary" onClick={handlePreviousQuestion} disabled={currentQuestionIndex === 0}>
                                 Previous

@@ -25,6 +25,7 @@ import {Textarea} from '@/components/ui/textarea';
 import {z} from 'zod';
 import {useForm} from 'react-hook-form';
 import {AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger} from '@/components/ui/alert-dialog';
+import {getStorage, ref, uploadBytes, getDownloadURL} from 'firebase/storage';
 
 // Zod schema for form validation
 const examSchema = z.object({
@@ -109,22 +110,22 @@ export default function ExamScheduling() {
 
     setCsvFile(file);
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const text = e.target?.result as string;
-      try {
-        const parsedQuestions = parseCSV(text);
-        setQuestions(JSON.stringify(parsedQuestions, null, 2)); // Format as JSON for display
-      } catch (error: any) {
-        toast({
-          title: 'Error parsing CSV file.',
-          description: error.message,
-          variant: 'destructive',
-        });
-        console.error('CSV Parsing Error:', error.message);
-      }
-    };
-    reader.readAsText(file);
+    //   const reader = new FileReader();
+    //   reader.onload = async (e) => {
+    //     const text = e.target?.result as string;
+    //     try {
+    //       const parsedQuestions = parseCSV(text);
+    //       setQuestions(JSON.stringify(parsedQuestions, null, 2)); // Format as JSON for display
+    //     } catch (error: any) {
+    //       toast({
+    //         title: 'Error parsing CSV file.',
+    //         description: error.message,
+    //         variant: 'destructive',
+    //       });
+    //       console.error('CSV Parsing Error:', error.message);
+    //     }
+    //   };
+    //   reader.readAsText(file);
   };
 
   const parseCSV = (csvText: string): Question[] => {
@@ -143,8 +144,8 @@ export default function ExamScheduling() {
 
       const values = line.split(',').map(value => value.trim());
       if (values.length !== header.length) {
-          console.warn(`Skipping line ${i + 1} due to incorrect number of columns.`);
-          continue;
+        console.warn(`Skipping line ${i + 1} due to incorrect number of columns.`);
+        continue;
       }
 
       const questionText = values[header.indexOf('Question Text')];
@@ -165,21 +166,32 @@ export default function ExamScheduling() {
   };
 
   const handleScheduleExam = async () => {
-    if (!date || !examName || (!questions && !csvFile)) {
+    if (!date || !examName || !csvFile) {
       toast({
         title: 'Error scheduling exam.',
-        description: 'Please fill in all fields and upload a CSV file or enter questions.',
+        description: 'Please fill in all fields and upload a CSV file.',
         variant: 'destructive',
       });
       return;
     }
 
     try {
+      const storage = getStorage();
+      const storageRef = ref(storage, `examFiles/${csvFile.name}`);
+
+      // Upload the file to Firebase Storage
+      const snapshot = await uploadBytes(storageRef, csvFile);
+      console.log('Uploaded a blob or file!', snapshot);
+
+      // Get the download URL
+      const downloadURL = await getDownloadURL(storageRef);
+      console.log('File available at', downloadURL);
+
       const examsCollection = collection(db, 'exams');
       await addDoc(examsCollection, {
         examName: examName,
         scheduledDate: date.toISOString(),
-        questions: questions,
+        csvFileUrl: `examFiles/${csvFile.name}`,
       });
 
       toast({
@@ -267,22 +279,22 @@ export default function ExamScheduling() {
             </PopoverContent>
           </Popover>
         </div>
-          <div>
-            <Label htmlFor="csvFile">Upload Questions (CSV)</Label>
-            <Input
-              type="file"
-              id="csvFile"
-              accept=".csv"
-              onChange={handleFileUpload}
-            />
-            {csvFile && (
-              <p className="mt-2 text-sm text-muted-foreground">
-                Selected file: {csvFile.name}
-              </p>
-            )}
-          </div>
-
         <div>
+          <Label htmlFor="csvFile">Upload Questions (CSV)</Label>
+          <Input
+            type="file"
+            id="csvFile"
+            accept=".csv"
+            onChange={handleFileUpload}
+          />
+          {csvFile && (
+            <p className="mt-2 text-sm text-muted-foreground">
+              Selected file: {csvFile.name}
+            </p>
+          )}
+        </div>
+
+        {/* <div>
           <Label htmlFor="questions">Questions</Label>
           <Textarea
             id="questions"
@@ -291,7 +303,7 @@ export default function ExamScheduling() {
             onChange={e => setQuestions(e.target.value)}
             className="min-h-[100px]"
           />
-        </div>
+        </div> */}
 
         <Button onClick={handleScheduleExam}>Schedule Exam</Button>
       </div>
@@ -316,12 +328,12 @@ export default function ExamScheduling() {
                 >
                   Scheduled Date
                 </th>
-                <th
+                {/* <th
                   scope="col"
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
                 >
                   Questions
-                </th>
+                </th> */}
                 <th scope="col" className="relative px-6 py-3">
                   <span className="sr-only">Delete</span>
                 </th>
@@ -336,9 +348,9 @@ export default function ExamScheduling() {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {new Date(exam.scheduledDate).toLocaleDateString()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {/* <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {exam.questions.substring(0, 50)}...
-                  </td>
+                  </td> */}
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
