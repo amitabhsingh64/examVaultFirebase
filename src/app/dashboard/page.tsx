@@ -1,65 +1,81 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+"use client";
+
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+} from "@/components/ui/sidebar";
+import { Icons } from "@/components/icons";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function Dashboard() {
+  const router = useRouter();
+  useEffect(() => {
+    document.title = "Student Dashboard";
+  }, []);
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen py-2">
-      <main className="flex flex-col items-center justify-center w-full flex-1 px-20 text-center">
-        <h1 className="text-6xl font-bold">
-          Welcome to <span className="text-blue-500">Examplify Dashboard!</span>
-        </h1>
-
-        <p className="mt-3 text-2xl">
-          Manage and take exams with ease.
-        </p>
-
-        <div className="flex flex-wrap items-center justify-around max-w-4xl mt-6 sm:w-full">
-          <Card className="p-4 w-80">
-            <CardHeader>
-              <CardTitle>Student Authentication</CardTitle>
-              <CardDescription>Secure login for students using Firebase and Google Sign-In.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>Ensures only verified students can access the exams.</p>
-            </CardContent>
-          </Card>
-
-          <Card className="p-4 w-80">
-            <CardHeader>
-              <CardTitle>Exam Interface</CardTitle>
-              <CardDescription>User-friendly interface for taking exams with timer and navigation.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>Clear layout to minimize distractions and focus on the questions.</p>
-            </CardContent>
-          </Card>
-
-          <Card className="p-4 w-80">
-            <CardHeader>
-              <CardTitle>Admin Dashboard</CardTitle>
-              <CardDescription>Manage exams, view statistics, and oversee student performance.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>Centralized location for administrative tasks and insights.</p>
-            </CardContent>
-          </Card>
-
-          <Card className="p-4 w-80">
-            <CardHeader>
-              <CardTitle>Student Proctoring</CardTitle>
-              <CardDescription>Monitor students during exams to prevent cheating.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>Records suspicious activities like tab switching and app minimizing.</p>
-            </CardContent>
-          </Card>
-        </div>
-      </main>
-
-      <footer className="flex items-center justify-center w-full h-24 border-t">
-        <p>
-          Powered by Firebase Studio
-        </p>
-      </footer>
-    </div>
+    <SidebarProvider>
+      <Sidebar variant="inset" side="left" collapsible="icon">
+        <SidebarHeader>
+          <div className="flex items-center space-x-2">
+            <Avatar>
+              <AvatarImage src="https://picsum.photos/50/50" alt="Avatar" />
+              <AvatarFallback>OM</AvatarFallback>
+            </Avatar>
+            <span className="font-bold">Student Name</span>
+          </div>
+        </SidebarHeader>
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton onClick={() => router.push("/dashboard/exams")}>
+                  <Icons.home className="mr-2 h-4 w-4" />
+                  <span>Exams</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton onClick={() => router.push("/dashboard/results")}>
+                  <Icons.messageSquare className="mr-2 h-4 w-4" />
+                  <span>Results</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton onClick={() => router.push("/dashboard/registration")}>
+                  <Icons.settings className="mr-2 h-4 w-4" />
+                  <span>Registration</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton onClick={() => router.push("/dashboard/details")}>
+                  <Icons.user className="mr-2 h-4 w-4" />
+                  <span>Details</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroup>
+        </SidebarContent>
+        <SidebarFooter>
+          <Button variant="outline" className="w-full" onClick={() => router.push("/")}>
+            Logout
+          </Button>
+        </SidebarFooter>
+      </Sidebar>
+      <div className="flex-1 p-4">
+        {/* Main content area */}
+        <h1 className="text-2xl font-bold">Welcome to the Student Dashboard!</h1>
+        <p>Access your exams, results, and registration details from the sidebar.</p>
+      </div>
+    </SidebarProvider>
   );
 }
