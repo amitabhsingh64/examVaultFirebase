@@ -18,7 +18,7 @@ export default function Home() {
         </p>
 
         <div className="mt-6 flex gap-4">
-          <Button onClick={() => router.push("/student/dashboard")}>
+          <Button onClick={() => router.push("/dashboard")}>
             Log In as Student
           </Button>
           <Button onClick={() => router.push("/admin/dashboard")}>
