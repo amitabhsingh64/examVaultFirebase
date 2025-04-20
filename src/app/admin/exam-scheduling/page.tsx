@@ -39,6 +39,14 @@ const examSchema = z.object({
     .min(10, {message: 'Questions must be at least 10 characters long.'}),
 });
 
+interface Question {
+  questionText: string;
+  questionType: string;
+  options: string[];
+  correctAnswer: string;
+  category: string;
+}
+
 export default function ExamScheduling() {
   const router = useRouter();
   useEffect(() => {
@@ -52,7 +60,6 @@ export default function ExamScheduling() {
   const [exams, setExams] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [csvFile, setCsvFile] = useState<File | null>(null);
-
 
   const fetchExams = async () => {
     setLoading(true);
@@ -105,15 +112,55 @@ export default function ExamScheduling() {
     const reader = new FileReader();
     reader.onload = async (e) => {
       const text = e.target?.result as string;
-      const parsedQuestions = parseCSV(text);
-      setQuestions(parsedQuestions);
+      try {
+        const parsedQuestions = parseCSV(text);
+        setQuestions(JSON.stringify(parsedQuestions, null, 2)); // Format as JSON for display
+      } catch (error: any) {
+        toast({
+          title: 'Error parsing CSV file.',
+          description: error.message,
+          variant: 'destructive',
+        });
+        console.error('CSV Parsing Error:', error.message);
+      }
     };
     reader.readAsText(file);
   };
 
-  const parseCSV = (csvText: string): string => {
+  const parseCSV = (csvText: string): Question[] => {
     const lines = csvText.split('\n');
-    const questions = lines.map(line => line.trim()).filter(line => line !== '').join('\n');
+    const header = lines[0].split(',').map(header => header.trim());
+    const expectedHeaders = ['Question Text', 'Question Type', 'Options', 'Correct Answer', 'Category'];
+
+    if (!expectedHeaders.every(expectedHeader => header.includes(expectedHeader))) {
+      throw new Error(`CSV file must contain the following headers: ${expectedHeaders.join(', ')}`);
+    }
+
+    const questions: Question[] = [];
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue; // Skip empty lines
+
+      const values = line.split(',').map(value => value.trim());
+      if (values.length !== header.length) {
+          console.warn(`Skipping line ${i + 1} due to incorrect number of columns.`);
+          continue;
+      }
+
+      const questionText = values[header.indexOf('Question Text')];
+      const questionType = values[header.indexOf('Question Type')];
+      const options = values[header.indexOf('Options')].split(';').map(opt => opt.trim());
+      const correctAnswer = values[header.indexOf('Correct Answer')];
+      const category = values[header.indexOf('Category')];
+
+      questions.push({
+        questionText,
+        questionType,
+        options,
+        correctAnswer,
+        category,
+      });
+    }
     return questions;
   };
 
