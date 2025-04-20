@@ -13,10 +13,6 @@ import {useRouter} from 'next/navigation';
 import {
   collection,
   addDoc,
-  getDocs,
-  updateDoc,
-  deleteDoc,
-  doc,
   FirebaseError,
 } from 'firebase/firestore';
 import {db} from '@/lib/firebase';
