@@ -18,10 +18,47 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { collection, getDocs, query, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Clock, Calendar } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+
+interface Exam {
+  id: string;
+  examName: string;
+  scheduledDate: string;
+  questions: string;
+}
+
+const ExamCard = ({ exam }: { exam: Exam }) => {
+  const scheduledDate = new Date(exam.scheduledDate);
+  const timeDiff = scheduledDate.getTime() - new Date().getTime();
+  const hoursUntilExam = Math.ceil(timeDiff / (1000 * 60 * 60));
+  const isLive = hoursUntilExam <= 0;
+
+  return (
+    <Card className="w-full">
+      <CardContent className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold">{exam.examName}</h3>
+          <div className="flex items-center text-sm text-muted-foreground space-x-2">
+            <Clock className="h-4 w-4" />
+            <span>{hoursUntilExam > 0 ? `${hoursUntilExam} hours` : 'Live'}</span>
+            <Calendar className="h-4 w-4" />
+            <span>{scheduledDate.toLocaleDateString()}</span>
+            <span>{scheduledDate.toLocaleTimeString()}</span>
+          </div>
+        </div>
+        {isLive && <Badge variant="destructive">Live</Badge>}
+        <Button size="sm">Start Exam</Button>
+      </CardContent>
+    </Card>
+  );
+};
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [exams, setExams] = useState<any[]>([]);
+  const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -38,7 +75,7 @@ export default function AdminDashboard() {
         const examsData = querySnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data(),
-        }));
+        })) as Exam[];
         setExams(examsData);
       } catch (error: any) {
         console.error('Error fetching exams:', error);
@@ -49,6 +86,10 @@ export default function AdminDashboard() {
 
     fetchExams();
   }, []);
+
+  const liveExams = exams.filter(exam => new Date(exam.scheduledDate).getTime() <= new Date().getTime());
+  const upcomingExams = exams.filter(exam => new Date(exam.scheduledDate).getTime() > new Date().getTime());
+  const pastExams = exams.filter(exam => new Date(exam.scheduledDate).getTime() < new Date().getTime());
 
   return (
     <SidebarProvider>
@@ -105,56 +146,53 @@ export default function AdminDashboard() {
         </SidebarFooter>
       </Sidebar>
       <div className="flex-1 p-4">
-        {/* Main content area */}
         <h1 className="text-2xl font-bold">Welcome to the Admin Dashboard!</h1>
         <p>Manage exams, scheduling, results, and proctoring records from the sidebar.</p>
 
         <h2 className="text-xl font-semibold mt-4">Scheduled Exams</h2>
-        {loading ? (
-          <p>Loading exams...</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Exam Name
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Scheduled Date
-                  </th>
-                  <th
-                    scope="col"
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                  >
-                    Questions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {exams.map(exam => (
-                  <tr key={exam.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {exam.examName}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(exam.scheduledDate).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {exam.questions.substring(0, 50)}...
-                    </td>
-                  </tr>
+        <Tabs defaultVale="live" className="w-full">
+          <TabsList>
+            <TabsTrigger value="live">Live</TabsTrigger>
+            <TabsTrigger value="upcoming">Upcoming</TabsTrigger>
+            <TabsTrigger value="past">Past</TabsTrigger>
+          </TabsList>
+          <TabsContent value="live" className="mt-4">
+            {loading ? (
+              <p>Loading live exams...</p>
+            ) : (
+              <div className="space-y-4">
+                {liveExams.map(exam => (
+                  <ExamCard key={exam.id} exam={exam} />
                 ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                {liveExams.length === 0 && <p>No live exams scheduled.</p>}
+              </div>
+            )}
+          </TabsContent>
+          <TabsContent value="upcoming" className="mt-4">
+            {loading ? (
+              <p>Loading upcoming exams...</p>
+            ) : (
+              <div className="space-y-4">
+                {upcomingExams.map(exam => (
+                  <ExamCard key={exam.id} exam={exam} />
+                ))}
+                {upcomingExams.length === 0 && <p>No upcoming exams scheduled.</p>}
+              </div>
+            )}
+          </TabsContent>
+          <TabsContent value="past" className="mt-4">
+            {loading ? (
+              <p>Loading past exams...</p>
+            ) : (
+              <div className="space-y-4">
+                {pastExams.map(exam => (
+                  <ExamCard key={exam.id} exam={exam} />
+                ))}
+                {pastExams.length === 0 && <p>No past exams scheduled.</p>}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </SidebarProvider>
   );
