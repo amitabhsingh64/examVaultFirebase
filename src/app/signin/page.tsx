@@ -27,6 +27,7 @@ export default function SignInPage() {
           title: "Sign in successful!",
           description: "Redirecting to dashboard...",
         });
+        console.log("Google Sign-in successful:", user); // Add this line
         router.push(isStudent ? "/dashboard" : "/admin/dashboard");
         // ...
       });
