@@ -14,11 +14,17 @@ import {
   collection,
   addDoc,
   FirebaseError,
+  getDocs,
+  query,
+  orderBy,
+  deleteDoc,
+  doc,
 } from 'firebase/firestore';
 import {db} from '@/lib/firebase';
 import {Textarea} from '@/components/ui/textarea';
 import {z} from 'zod';
 import {useForm} from 'react-hook-form';
+import {AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger} from '@/components/ui/alert-dialog';
 
 // Zod schema for form validation
 const examSchema = z.object({
@@ -43,6 +49,35 @@ export default function ExamScheduling() {
   const [examName, setExamName] = useState('');
   const [questions, setQuestions] = useState('');
   const {toast} = useToast();
+  const [exams, setExams] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchExams = async () => {
+    setLoading(true);
+    try {
+      const examsCollection = collection(db, 'exams');
+      const q = query(examsCollection, orderBy('scheduledDate', 'desc'));
+      const querySnapshot = await getDocs(q);
+      const examsData = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setExams(examsData);
+    } catch (error: any) {
+      console.error('Error fetching exams:', error);
+      toast({
+        title: 'Failed to fetch exams',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchExams();
+  }, []);
 
   const handleScheduleExam = async () => {
     if (!date || !examName || !questions) {
@@ -71,6 +106,9 @@ export default function ExamScheduling() {
       setDate(undefined);
       setExamName('');
       setQuestions('');
+
+      // Refresh the exams list
+      fetchExams();
     } catch (e: any) {
       toast({
         title: 'Error scheduling exam.',
@@ -80,11 +118,31 @@ export default function ExamScheduling() {
     }
   };
 
+  const handleDeleteExam = async (examId: string) => {
+    try {
+      const examDocRef = doc(db, 'exams', examId);
+      await deleteDoc(examDocRef);
+      toast({
+        title: 'Exam deleted successfully!',
+        description: `The exam has been deleted.`,
+      });
+      // Refresh the exams list
+      fetchExams();
+    } catch (error: any) {
+      console.error('Error deleting exam:', error);
+      toast({
+        title: 'Failed to delete exam',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <div className="container mx-auto py-10">
       <h1 className="text-3xl font-bold mb-5">Exam Scheduling</h1>
 
-      <div className="grid gap-4">
+      <div className="grid gap-4 mb-5">
         <div>
           <Label htmlFor="examName">Exam Name</Label>
           <Input
@@ -137,6 +195,77 @@ export default function ExamScheduling() {
 
         <Button onClick={handleScheduleExam}>Schedule Exam</Button>
       </div>
+
+      <h2 className="text-2xl font-bold mb-3">Scheduled Exams</h2>
+      {loading ? (
+        <p>Loading exams...</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Exam Name
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Scheduled Date
+                </th>
+                <th
+                  scope="col"
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                >
+                  Questions
+                </th>
+                <th scope="col" className="relative px-6 py-3">
+                  <span className="sr-only">Delete</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {exams.map(exam => (
+                <tr key={exam.id}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                    {exam.examName}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {new Date(exam.scheduledDate).toLocaleDateString()}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {exam.questions.substring(0, 50)}...
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="sm">
+                          Delete
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the exam from our servers.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => handleDeleteExam(exam.id)}>Continue</AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,43 +1,31 @@
-// Import the functions you need from the SDKs you need
 import { initializeApp, getApp, getApps } from "firebase/app";
 import { getAnalytics, Analytics } from "firebase/analytics";
-import { getFirestore, FirebaseFirestore } from "firebase/firestore";
+import { getFirestore } from "firebase/firestore";
+import type { Firestore } from "firebase/firestore";
 
-// Firebase configuration
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
-  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
+  apiKey: "AIzaSyB8kXESEEmnnZR0JKuAlhGrwdN4_0qep6k",
+  authDomain: "examvault-e1dcb.firebaseapp.com",
+  projectId: "examvault-e1dcb",
+  storageBucket: "examvault-e1dcb.firebasestorage.app",
+  messagingSenderId: "956841044782",
+  appId: "1:956841044782:web:8738d4c3781f9b097168bf",
+  measurementId: "G-BBSQ5TPN40"
 };
 
-// Initialize Firebase
-let app: any;
-
+let app;
 if (!getApps().length) {
   app = initializeApp(firebaseConfig);
 } else {
-  app = getApp(); // if already initialized, use that one
+  app = getApp();
 }
 
 let analytics: Analytics;
-let db: FirebaseFirestore;
+let db: Firestore;
 
-if (typeof window !== 'undefined' &&
-    firebaseConfig.apiKey &&
-    firebaseConfig.authDomain &&
-    firebaseConfig.projectId &&
-    firebaseConfig.storageBucket &&
-    firebaseConfig.messagingSenderId &&
-    firebaseConfig.appId &&
-    firebaseConfig.measurementId) {
+if (typeof window !== "undefined") {
   analytics = getAnalytics(app);
-  db = getFirestore(app);
-} else {
-  console.warn("Firebase configuration is incomplete. Make sure all environment variables are set.");
 }
+db = getFirestore(app);
 
 export { app, analytics, db };
