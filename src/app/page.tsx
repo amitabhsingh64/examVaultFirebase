@@ -14,12 +14,15 @@ export default function Home() {
         </h1>
 
         <p className="mt-3 text-2xl">
-          Please log in to continue.
+          Please log in as a student or admin to continue.
         </p>
 
-        <div className="mt-6">
-          <Button onClick={() => router.push("/dashboard")}>
-            Log In
+        <div className="mt-6 flex gap-4">
+          <Button onClick={() => router.push("/student/dashboard")}>
+            Log In as Student
+          </Button>
+          <Button onClick={() => router.push("/admin/dashboard")}>
+            Log In as Admin
           </Button>
         </div>
       </main>
