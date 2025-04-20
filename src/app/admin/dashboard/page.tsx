@@ -22,6 +22,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Clock, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { getAuth, onAuthStateChanged, User } from "firebase/auth";
+import { app } from "@/lib/firebase";
 
 interface Exam {
   id: string;
@@ -60,9 +62,29 @@ export default function AdminDashboard() {
   const router = useRouter();
   const [exams, setExams] = useState<Exam[]>([]);
   const [loading, setLoading] = useState(true);
+  const [adminName, setAdminName] = useState<string | null>('Admin User');
+  const [googleSignIn, setGoogleSignIn] = useState(false);
+  const [userPhoto, setUserPhoto] = useState<string | null>(null);
 
   useEffect(() => {
     document.title = "Admin Dashboard";
+  }, []);
+
+  useEffect(() => {
+    const auth = getAuth(app);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setAdminName(user.displayName || 'Admin User');
+        setGoogleSignIn(!!user.providerData.find(provider => provider.providerId === 'google.com'));
+        setUserPhoto(user.photoURL || null);
+      } else {
+        setAdminName('Admin User');
+        setGoogleSignIn(false);
+        setUserPhoto(null);
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   useEffect(() => {
@@ -97,11 +119,12 @@ export default function AdminDashboard() {
         <SidebarHeader>
           <div className="flex items-center space-x-2">
             <Avatar>
-              <AvatarImage src="https://picsum.photos/50/50" alt="Avatar" />
-              <AvatarFallback>AD</AvatarFallback>
+              <AvatarImage src={userPhoto || "https://picsum.photos/50/50"} alt="Avatar" />
+              <AvatarFallback>{adminName?.substring(0, 2).toUpperCase() || 'AD'}</AvatarFallback>
             </Avatar>
-            <span className="font-bold">Admin User</span>
+            <span className="font-bold">{adminName}</span>
           </div>
+          {googleSignIn && <Badge variant="outline">Google Sign-In</Badge>}
         </SidebarHeader>
         <SidebarContent>
           <SidebarGroup>
