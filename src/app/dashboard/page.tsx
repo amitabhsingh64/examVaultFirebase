@@ -31,10 +31,15 @@ interface Exam {
 }
 
 const ExamCard = ({ exam }: { exam: Exam }) => {
+  const router = useRouter();
   const scheduledDate = new Date(exam.scheduledDate);
   const timeDiff = scheduledDate.getTime() - new Date().getTime();
   const hoursUntilExam = Math.ceil(timeDiff / (1000 * 60 * 60));
   const isLive = hoursUntilExam <= 0;
+
+  const handleStartExam = () => {
+    router.push(`/dashboard/exams?examId=${exam.id}`);
+  };
 
   return (
     <Card className="w-full">
@@ -50,7 +55,7 @@ const ExamCard = ({ exam }: { exam: Exam }) => {
           </div>
         </div>
         {isLive && <Badge variant="destructive">Live</Badge>}
-        <Button size="sm">Start Exam</Button>
+        <Button size="sm" onClick={handleStartExam}>Start Exam</Button>
       </CardContent>
     </Card>
   );
